@@ -1,28 +1,30 @@
 <?php
 class Pagination {
-
 	/*
 	 * Set varibale
 	 */
+	private $type = 'pagination-sm';
 	private $url = null;
 	private $page = 1;
 	private $perpage = 10;
 	private $prev = 1;
 	private $next = 2;
 	private $total_record = 0;
+	private $link = null;
 	private $response = null;
 	private $html = null;
 
 	/*
 	 * Set properties for create class
 	 */
-	public function __construct($datas = array()) {
-		$this->url = isset($datas['url']) ? $datas['url'] : $this->url;
-		$this->page = isset($datas['page']) ? (int) $datas['page'] : $this->page;
-		$this->perpage = isset($datas['perpage']) ? (int) $datas['perpage'] : $this->perpage;
-		$this->total_record = isset($datas['total_record']) ? (int) $datas['total_record'] : $this->total_record;
-		$this->prev = isset($datas['prev']) ? (int) $datas['prev'] : $this->prev;
-		$this->next = isset($datas['next']) ? (int) $datas['next'] : $this->next;
+	public function __construct($request = array()) {
+		$this->type = isset($request['type']) ? $request['type'] : $this->type;
+		$this->url = isset($request['url']) ? $request['url'] : $this->url;
+		$this->page = isset($request['page']) ? (int) $request['page'] : $this->page;
+		$this->perpage = isset($request['perpage']) ? (int) $request['perpage'] : $this->perpage;
+		$this->total_record = isset($request['total_record']) ? (int) $request['total_record'] : $this->total_record;
+		$this->prev = isset($request['prev']) ? (int) $request['prev'] : $this->prev;
+		$this->next = isset($request['next']) ? (int) $request['next'] : $this->next;
 	}
 
 	/*
@@ -30,15 +32,12 @@ class Pagination {
 	 */
 	public function get() {
 		$this->html = null;
-
 		if ($this->total_page() > 1) {
-			$this->html .= '<ul class="pagination pagination-sm custom-pagination">';
-
-			if(($this->page > $this->prev) + 1) {
+			$this->html .= '<ul class="pagination '.$this->type.' custom-pagination">';
+			if($this->page > ($this->prev + 1)) {
 				$this->html .= '<li><a href="'.$this->url.'?page=1'.$this->parameters().'"><i class="fa fa-angle-double-left"></i></a></li>';
 				$this->html .= '<li><a href="'.$this->url.'?page='.($this->page - 1).$this->parameters().'"><i class="fa fa-angle-left"></i></a>';
 			}
-
 			for($i=$this->start(); $i<=$this->display(); $i++){
 				if($i == (int) $this->page){
 					$this->html .= '<li class="active"><a href="#'.$i.'/">'.$i.'</a></li>';
@@ -46,16 +45,36 @@ class Pagination {
 					$this->html .= '<li><a href="'.$this->url.'?page='.$i.$this->parameters().'">'.$i.'</a></li>';
 				}
 			}
-
 			if($this->total_page() > $this->display()){
 				$this->html .= '<li><a href="'.$this->url.'?page='.((int) $this->page + 1).$this->parameters().'"><i class="fa fa-angle-right"></i></a></li>';
 				$this->html .= '<li><a href="'.$this->url.'?page='.$this->total_page().$this->parameters().'"><i class="fa fa-angle-double-right"></i></a></li>';
 			}
-
 			$this->html .= '</ul>';
 		}
-
 		return $this->html;
+	}
+
+	/*
+	 * Set ordering
+	 */
+	public function ordering($ordering = null, $sorting = null) {
+		$url = array();
+		$parameters = explode('&amp;', $this->parameters());
+		foreach ($parameters as $parameter) {
+			if (!empty($parameter)) {
+				list ($key, $val) = explode('=', $parameter);
+
+				$url[$key] = $val;
+			}
+		}
+		
+		$url['ordering'] = $ordering;
+		$url['sorting'] = $sorting;
+
+		$this->link = $this->url.'?page='.$this->page;
+		$this->link .= '&amp;'.http_build_query($url, '&amp;');
+
+		return $this->link;
 	}
 
 	/*
@@ -85,11 +104,9 @@ class Pagination {
 	private function display() {
 		$this->response = null;
 		$this->response = $this->start() + (int) $this->prev + (int) $this->next;
-
 		if($this->response > $this->total_page()) {
 			$this->response = $this->total_page();
 		}
-
 		return $this->response;
 	}
 
@@ -98,7 +115,6 @@ class Pagination {
 	 */
 	private function parameters() {
 		$this->response = null;
-
 		if (isset($_GET)) {
 			foreach ($_GET as $key=>$val) {
 				if ($key != 'page') {
